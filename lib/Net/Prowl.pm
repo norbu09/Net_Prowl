@@ -54,18 +54,18 @@ has 'err' => (
 );
 
 sub verify {
-    my($self, $key) = @_;
-    my $path = 'verify?apikey='.$key;
+    my ( $self, $key ) = @_;
+    my $path   = 'verify?apikey=' . $key;
     my $result = $self->_call($path);
     return $result;
 }
 
-
 sub add_key {
-    my ($self, $key) = @_;
-    if($self->verify($key)){
-        push(@{$self->apikeys}, $key);
-    } else {
+    my ( $self, $key ) = @_;
+    if ( $self->verify($key) ) {
+        push( @{ $self->apikeys }, $key );
+    }
+    else {
         warn $self->err;
     }
     return;
@@ -74,12 +74,18 @@ sub add_key {
 sub send {
     my $self = shift;
     my @req;
-    push(@req, "apikey=". join(',', @{$self->apikeys}));
-    push(@req, "description=".uri_escape($self->message));
-    push(@req, "event=".uri_escape($self->event));
-    push(@req, "priority=".$self->prio);
-    push(@req, "application=".uri_escape($self->app));
-    my $path = 'add?'.join('&', @req);
+    if ( length $self->message > 10000 ) {
+        $self->message( substr( $self->message, 0, 10000 ) );
+    }
+    if ( length $self->event > 1024 ) {
+        $self->event( substr( $self->event, 0, 1024 ) );
+    }
+    push( @req, "apikey=" . join( ',', @{ $self->apikeys } ) );
+    push( @req, "description=" . uri_escape( $self->message ) );
+    push( @req, "event=" . uri_escape( $self->event ) );
+    push( @req, "priority=" . $self->prio );
+    push( @req, "application=" . uri_escape( $self->app ) );
+    my $path = 'add?' . join( '&', @req );
     print STDERR "Request: $path\n";
     my $result = $self->_call($path);
     return $result;
@@ -91,8 +97,9 @@ sub _call {
     print STDERR "URI: $uri\n" if $self->is_debug;
 
     my $req = HTTP::Request->new();
-    $req->method( 'GET' );
+    $req->method('GET');
     $req->uri($uri);
+
     #$req->content( to_json($content) ) if ($content);
 
     my $ua  = LWP::UserAgent->new();
@@ -102,9 +109,10 @@ sub _call {
         return XMLin( $res->decoded_content );
     }
     else {
-        if(my $_err = XMLin( $res->decoded_content )){
+        if ( my $_err = XMLin( $res->decoded_content ) ) {
             $self->err($_err);
-        } else {
+        }
+        else {
             $self->err( $res->status_line );
         }
     }
@@ -122,7 +130,6 @@ Version 0.01
 =cut
 
 our $VERSION = '0.01';
-
 
 =head1 SYNOPSIS
 
@@ -215,4 +222,4 @@ See http://dev.perl.org/licenses/ for more information.
 
 =cut
 
-1; # End of Net::Prowl
+1;    # End of Net::Prowl
